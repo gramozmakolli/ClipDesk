@@ -1,0 +1,43 @@
+{
+  "name": "clipdesk",
+  "version": "1.0.0",
+  "description": "ClipDesk: trim, convert and brand your own clips, and get captions, thumbnails and ideas from Claude.",
+  "main": "main.js",
+  "author": "ClipDesk",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac dmg"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.0",
+    "ffmpeg-static": "^5.2.0"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.clipdesk.app",
+    "productName": "ClipDesk",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**",
+      "node_modules/onnxruntime-node/**",
+      "node_modules/onnxruntime-common/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "target": "dmg",
+      "identity": null
+    }
+  }
+}

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'; frame-src https:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipDesk</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav id="nav">
+  <div class="brand">ClipDesk</div>
+  <button data-tab="watch" class="on">Watch</button>
+  <button data-tab="studio">Studio</button>
+  <button data-tab="subs">Subtitles</button>
+  <button data-tab="thumbs">Thumbnails</button>
+  <button data-tab="captions">Post text</button>
+  <button data-tab="ideas">Ideas</button>
+  <div class="spacer"></div>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<main>
+  <!-- WATCH -->
+  <section id="tab-watch" class="tab">
+    <div class="bar">
+      <button id="wBack" class="ghost">&larr;</button>
+      <button id="wFwd" class="ghost">&rarr;</button>
+      <button id="wReload" class="ghost">Reload</button>
+      <input id="wUrl" type="text" placeholder="https://www.twitch.tv/streamer or a YouTube link" spellcheck="false">
+      <button id="wGo">Go</button>
+    </div>
+    <div class="bar">
+      <span class="muted">Streamers:</span>
+      <span id="wChips"></span>
+      <input id="wAdd" type="text" class="short" placeholder="add name" spellcheck="false">
+      <button id="wAddBtn" class="ghost">Add</button>
+    </div>
+    <webview id="web" src="https://www.twitch.tv" partition="persist:browse"></webview>
+    <p class="note">Clip with the site's own button: on Twitch use the Clip button (or Alt+X), on YouTube use the Clip button under the video when the creator allows it. Get the streamer's or creator's permission before you post their footage on your channel.</p>
+  </section>
+
+  <!-- STUDIO -->
+  <section id="tab-studio" class="tab" hidden>
+    <div class="cols">
+      <div class="col">
+        <div id="drop" class="drop">
+          <p>Drop a video here (your gameplay, your stream, or footage you have permission to use)</p>
+          <button id="pickVideo">Choose video</button>
+          <div id="vidName" class="muted"></div>
+        </div>
+        <video id="vid" controls></video>
+        <div class="row">
+          <label>Start <input id="startT" type="text" class="short" placeholder="0:00"></label>
+          <button id="setStart" class="ghost">Use current time</button>
+          <label>End <input id="endT" type="text" class="short" placeholder="end"></label>
+          <button id="setEnd" class="ghost">Use current time</button>
+        </div>
+      </div>
+      <div class="col side">
+        <h3>Format</h3>
+        <label class="line"><input type="radio" name="orient" value="vertical" checked> Vertical 9:16 (Shorts, Reels)</label>
+        <label class="line"><input type="radio" name="orient" value="horizontal"> Horizontal 16:9</label>
+        <label class="line">Fit
+          <select id="fit"><option value="blur">Blurred background</option><option value="crop">Crop to fill</option></select>
+        </label>
+        <h3>Logo</h3>
+        <label class="line"><input type="checkbox" id="addLogo"> Add my logo</label>
+        <div class="line"><button id="pickLogo" class="ghost">Choose logo (PNG)</button> <span id="logoName" class="muted"></span></div>
+        <label class="line">Corner
+          <select id="logoPos"><option value="tl">Top left</option><option value="tr">Top right</option><option value="bl">Bottom left</option><option value="br" selected>Bottom right</option></select>
+        </label>
+        <label class="line">Size <input type="range" id="logoScale" min="5" max="40" value="14"> <span id="logoScaleV">14%</span></label>
+        <h3>Subtitles</h3>
+        <label class="line"><input type="checkbox" id="burnSubs"> Burn in subtitles (made in the Subtitles tab)</label>
+        <h3>Output</h3>
+        <div class="line"><button id="pickOut" class="ghost">Choose folder</button></div>
+        <div id="outDir" class="muted small"></div>
+        <button id="exportBtn" class="big">Export clip</button>
+        <progress id="prog" value="0" max="1" hidden></progress>
+        <div id="result" class="small"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUBTITLES -->
+  <section id="tab-subs" class="tab" hidden>
+    <div class="cols">
+      <div class="col side wide">
+        <h3>1. Transcribe</h3>
+        <p class="small muted">Uses the video chosen in Studio and its Start/End times. Runs on this Mac, no API key needed. The first run downloads a speech model.</p>
+        <label class="line">Accuracy
+          <select id="sbModel"><option value="fast">Fast (small model)</option><option value="balanced" selected>Balanced</option><option value="accurate">Best (slow, big download)</option></select>
+        </label>
+        <button id="sbGo" class="big">Transcribe</button>
+        <div id="sbStatus" class="small muted"></div>
+        <h3>2. Style</h3>
+        <label class="line">Words per caption <input type="range" id="sbWords" min="1" max="6" value="3"> <span id="sbWordsV">3</span> <button id="sbRegroup" class="ghost">Regroup</button></label>
+        <label class="line">Font
+          <select id="sbFont"><option value="Impact">Impact</option><option value="Arial Black">Arial Black</option><option value="Helvetica Neue">Helvetica Neue</option><option value="Avenir Next">Avenir Next</option></select>
+        </label>
+        <label class="line">Size <input type="range" id="sbSize" min="4" max="12" value="7"></label>
+        <label class="line">Color <input type="color" id="sbColor" value="#ffffff"> Outline <input type="color" id="sbOutline" value="#000000"></label>
+        <label class="line"><input type="checkbox" id="sbUpper" checked> ALL CAPS</label>
+        <label class="line">Position
+          <select id="sbPos"><option value="low" selected>Lower third</option><option value="mid">Middle</option><option value="top">Top</option></select>
+        </label>
+        <canvas id="sbPrev" width="540" height="200"></canvas>
+        <p class="small muted">Then go to Studio, tick "Burn in subtitles" and export.</p>
+      </div>
+      <div class="col">
+        <div class="bar"><h3 style="margin:0">Captions (edit anything)</h3><button id="sbAdd" class="ghost">Add line</button><button id="sbClear" class="ghost">Clear all</button></div>
+        <div id="sbList" class="out"><p class="muted">Nothing yet. Transcribe, or add lines by hand.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THUMBNAILS -->
+  <section id="tab-thumbs" class="tab" hidden>
+    <div class="cols">
+      <div class="col">
+        <canvas id="cv" width="1280" height="720"></canvas>
+      </div>
+      <div class="col side">
+        <h3>Background</h3>
+        <div class="line"><button id="thPick" class="ghost">Choose video or image</button></div>
+        <div id="thName" class="muted small"></div>
+        <label class="line">Frame at (s) <input id="thTime" type="text" class="short" value="0"> <button id="thGrab" class="ghost">Grab frame</button></label>
+        <h3>Text</h3>
+        <input id="thText" type="text" placeholder="THUMBNAIL TEXT" spellcheck="false">
+        <label class="line">Position
+          <select id="thPos"><option value="top">Top</option><option value="mid">Middle</option><option value="bot" selected>Bottom</option></select>
+        </label>
+        <label class="line">Size <input type="range" id="thSize" min="50" max="200" value="130"></label>
+        <label class="line">Color <input type="color" id="thColor" value="#ffd60a"></label>
+        <label class="line"><input type="checkbox" id="thDark" checked> Darken for contrast</label>
+        <label class="line"><input type="checkbox" id="thLogo" checked> Show my logo</label>
+        <button id="thSave" class="big">Save PNG</button>
+        <p class="small muted">Use a real screenshot or frame from your own gameplay. Don't use Rockstar's official art or logos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPTIONS -->
+  <section id="tab-captions" class="tab" hidden>
+    <div class="cols">
+      <div class="col side wide">
+        <h3>Tell Claude about the clip</h3>
+        <textarea id="cpDesc" rows="5" placeholder="What happens in the video? (e.g. first time driving through Vice City at night, police chase ends in the water)"></textarea>
+        <label class="line">Topic <input id="cpTopic" type="text" value="GTA 6"></label>
+        <label class="line">Platform
+          <select id="cpPlat"><option>YouTube Short</option><option>YouTube video</option><option>Facebook Reel</option><option>Facebook post</option></select>
+        </label>
+        <label class="line">Tone
+          <select id="cpTone"><option>Hyped</option><option>Chill</option><option>Funny</option><option>Serious news</option></select>
+        </label>
+        <button id="cpGo" class="big">Generate</button>
+      </div>
+      <div class="col">
+        <div id="cpOut" class="out"><p class="muted">Results will show up here.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IDEAS -->
+  <section id="tab-ideas" class="tab" hidden>
+    <div class="chips" id="idChips"></div>
+    <div id="chat" class="chat"></div>
+    <div class="bar">
+      <label class="muted"><input type="checkbox" id="idWeb"> Search the web for trends</label>
+    </div>
+    <div class="bar">
+      <textarea id="idIn" rows="2" placeholder="Ask for video ideas..."></textarea>
+      <button id="idSend">Send</button>
+      <button id="idClear" class="ghost">New chat</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="tab" hidden>
+    <div class="side wide">
+      <h3>Anthropic API key</h3>
+      <p class="small muted">Needed for captions and ideas. Get one at console.anthropic.com. It is billed per use and is separate from your Claude chat plan. The key is stored encrypted on this Mac.</p>
+      <div class="line"><input id="keyIn" type="password" placeholder="sk-ant-..." spellcheck="false" autocomplete="off"></div>
+      <div class="line"><button id="keySave">Save key</button> <button id="keyDel" class="ghost">Remove key</button> <button id="keyTest" class="ghost">Test</button></div>
+      <div id="keyState" class="small"></div>
+      <h3>Model</h3>
+      <div class="line"><input id="modelIn" type="text" spellcheck="false"> <button id="modelSave" class="ghost">Save</button></div>
+      <p class="small muted">Leave the default unless you know you want another Claude model.</p>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
