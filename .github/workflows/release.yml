@@ -1,13 +1,13 @@
 name: Release
 
 # Two ways to publish a version:
-#  1. In the Actions tab: choose "Release", press "Run workflow" and type a version such as 1.0.1
-#  2. Push a tag like v1.0.1
+#  1. Push to main with [release] in the commit message. The version becomes 1.0.<run number>.
+#  2. In the Actions tab: choose "Release", press "Run workflow" and type a version such as 1.1.0
 # Either way GitHub builds the DMGs (Apple Silicon and Intel) and the small code-only update file,
 # then attaches them to a release.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -17,11 +17,16 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
-  RAW_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+  RAW_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || format('1.0.{0}', github.run_number) }}
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[release]')
     strategy:
       matrix:
         os: [macos-latest, macos-15-intel]
