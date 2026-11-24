@@ -6,18 +6,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ClipDesk</title>
 <link rel="stylesheet" href="style.css">
+<script src="i18n.js"></script>
 </head>
 <body>
 <nav id="nav">
   <div class="brand">ClipDesk</div>
-  <button data-tab="watch" class="on">Watch</button>
-  <button data-tab="studio">Studio</button>
-  <button data-tab="subs">Subtitles</button>
-  <button data-tab="thumbs">Thumbnails</button>
-  <button data-tab="captions">Post text</button>
-  <button data-tab="ideas">Ideas</button>
+  <button class="nb on" data-tab="watch"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg><span data-i18n="nav.watch">Watch</span></button>
+  <button class="nb" data-tab="studio"><svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg><span data-i18n="nav.studio">Studio</span></button>
+  <button class="nb" data-tab="subs"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M6 11h4M12.5 11H18M6 15h6M14.5 15H18"/></svg><span data-i18n="nav.subs">Subtitles</span></button>
+  <button class="nb" data-tab="thumbs"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg><span data-i18n="nav.thumbs">Thumbnails</span></button>
+  <button class="nb" data-tab="captions"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span data-i18n="nav.captions">Post text</span></button>
+  <button class="nb" data-tab="ideas"><svg class="ic" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg><span data-i18n="nav.ideas">Ideas</span></button>
   <div class="spacer"></div>
-  <button data-tab="settings">Settings</button>
+  <div class="navtools">
+    <div class="seg" role="group" aria-label="Language" data-i18n-title="tools.lang" title="Language">
+      <button id="langEn" data-lang="en">EN</button><button id="langSq" data-lang="sq">SQ</button>
+    </div>
+    <button id="themeBtn" class="tool" title="Theme">
+      <svg class="ic i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="ic i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <button class="nb" data-tab="settings"><svg class="ic" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span data-i18n="nav.settings">Settings</span></button>
 </nav>
 
 <main>
@@ -26,18 +36,18 @@
     <div class="bar">
       <button id="wBack" class="ghost">&larr;</button>
       <button id="wFwd" class="ghost">&rarr;</button>
-      <button id="wReload" class="ghost">Reload</button>
-      <input id="wUrl" type="text" placeholder="https://www.twitch.tv/streamer or a YouTube link" spellcheck="false">
-      <button id="wGo">Go</button>
+      <button id="wReload" class="ghost" data-i18n="w.reload">Reload</button>
+      <input id="wUrl" type="text" data-i18n-ph="w.urlPh" placeholder="https://www.twitch.tv/streamer or a YouTube link" spellcheck="false">
+      <button id="wGo" data-i18n="w.go">Go</button>
     </div>
     <div class="bar">
-      <span class="muted">Streamers:</span>
+      <span class="muted" data-i18n="w.streamers">Streamers:</span>
       <span id="wChips"></span>
-      <input id="wAdd" type="text" class="short" placeholder="add name" spellcheck="false">
-      <button id="wAddBtn" class="ghost">Add</button>
+      <input id="wAdd" type="text" class="short" data-i18n-ph="w.addPh" placeholder="add name" spellcheck="false">
+      <button id="wAddBtn" class="ghost" data-i18n="w.add">Add</button>
     </div>
     <webview id="web" src="https://www.twitch.tv" partition="persist:browse"></webview>
-    <p class="note">Clip with the site's own button: on Twitch use the Clip button (or Alt+X), on YouTube use the Clip button under the video when the creator allows it. Get the streamer's or creator's permission before you post their footage on your channel.</p>
+    <p class="note" data-i18n="w.note">Clip with the site's own button: on Twitch use the Clip button (or Alt+X), on YouTube use the Clip button under the video when the creator allows it. Get the streamer's or creator's permission before you post their footage on your channel.</p>
   </section>
 
   <!-- STUDIO -->
@@ -45,38 +55,38 @@
     <div class="cols">
       <div class="col">
         <div id="drop" class="drop">
-          <p>Drop a video here (your gameplay, your stream, or footage you have permission to use)</p>
-          <button id="pickVideo">Choose video</button>
+          <p data-i18n="s.drop">Drop a video here (your gameplay, your stream, or footage you have permission to use)</p>
+          <button id="pickVideo" data-i18n="s.pick">Choose video</button>
           <div id="vidName" class="muted"></div>
         </div>
         <video id="vid" controls></video>
         <div class="row">
-          <label>Start <input id="startT" type="text" class="short" placeholder="0:00"></label>
-          <button id="setStart" class="ghost">Use current time</button>
-          <label>End <input id="endT" type="text" class="short" placeholder="end"></label>
-          <button id="setEnd" class="ghost">Use current time</button>
+          <label><span data-i18n="s.start">Start</span> <input id="startT" type="text" class="short" placeholder="0:00"></label>
+          <button id="setStart" class="ghost" data-i18n="s.useTime">Use current time</button>
+          <label><span data-i18n="s.end">End</span> <input id="endT" type="text" class="short" data-i18n-ph="s.endPh" placeholder="end"></label>
+          <button id="setEnd" class="ghost" data-i18n="s.useTime">Use current time</button>
         </div>
       </div>
       <div class="col side">
-        <h3>Format</h3>
-        <label class="line"><input type="radio" name="orient" value="vertical" checked> Vertical 9:16 (Shorts, Reels)</label>
-        <label class="line"><input type="radio" name="orient" value="horizontal"> Horizontal 16:9</label>
-        <label class="line">Fit
-          <select id="fit"><option value="blur">Blurred background</option><option value="crop">Crop to fill</option></select>
+        <h3 data-i18n="s.format">Format</h3>
+        <label class="line"><input type="radio" name="orient" value="vertical" checked> <span data-i18n="s.vertical">Vertical 9:16 (Shorts, Reels)</span></label>
+        <label class="line"><input type="radio" name="orient" value="horizontal"> <span data-i18n="s.horizontal">Horizontal 16:9</span></label>
+        <label class="line"><span data-i18n="s.fit">Fit</span>
+          <select id="fit"><option value="blur" data-i18n="s.fitBlur">Blurred background</option><option value="crop" data-i18n="s.fitCrop">Crop to fill</option></select>
         </label>
-        <h3>Logo</h3>
-        <label class="line"><input type="checkbox" id="addLogo"> Add my logo</label>
-        <div class="line"><button id="pickLogo" class="ghost">Choose logo (PNG)</button> <span id="logoName" class="muted"></span></div>
-        <label class="line">Corner
-          <select id="logoPos"><option value="tl">Top left</option><option value="tr">Top right</option><option value="bl">Bottom left</option><option value="br" selected>Bottom right</option></select>
+        <h3 data-i18n="s.logo">Logo</h3>
+        <label class="line"><input type="checkbox" id="addLogo"> <span data-i18n="s.addLogo">Add my logo</span></label>
+        <div class="line"><button id="pickLogo" class="ghost" data-i18n="s.pickLogo">Choose logo (PNG)</button> <span id="logoName" class="muted"></span></div>
+        <label class="line"><span data-i18n="s.corner">Corner</span>
+          <select id="logoPos"><option value="tl" data-i18n="s.tl">Top left</option><option value="tr" data-i18n="s.tr">Top right</option><option value="bl" data-i18n="s.bl">Bottom left</option><option value="br" data-i18n="s.br" selected>Bottom right</option></select>
         </label>
-        <label class="line">Size <input type="range" id="logoScale" min="5" max="40" value="14"> <span id="logoScaleV">14%</span></label>
-        <h3>Subtitles</h3>
-        <label class="line"><input type="checkbox" id="burnSubs"> Burn in subtitles (made in the Subtitles tab)</label>
-        <h3>Output</h3>
-        <div class="line"><button id="pickOut" class="ghost">Choose folder</button></div>
+        <label class="line"><span data-i18n="c.size">Size</span> <input type="range" id="logoScale" min="5" max="40" value="14"> <span id="logoScaleV">14%</span></label>
+        <h3 data-i18n="s.subs">Subtitles</h3>
+        <label class="line"><input type="checkbox" id="burnSubs"> <span data-i18n="s.burn">Burn in subtitles (made in the Subtitles tab)</span></label>
+        <h3 data-i18n="s.output">Output</h3>
+        <div class="line"><button id="pickOut" class="ghost" data-i18n="s.pickOut">Choose folder</button></div>
         <div id="outDir" class="muted small"></div>
-        <button id="exportBtn" class="big">Export clip</button>
+        <button id="exportBtn" class="big" data-i18n="s.export">Export clip</button>
         <progress id="prog" value="0" max="1" hidden></progress>
         <div id="result" class="small"></div>
       </div>
@@ -87,30 +97,30 @@
   <section id="tab-subs" class="tab" hidden>
     <div class="cols">
       <div class="col side wide">
-        <h3>1. Transcribe</h3>
-        <p class="small muted">Uses the video chosen in Studio and its Start/End times. Runs on this Mac, no API key needed. The first run downloads a speech model.</p>
-        <label class="line">Accuracy
-          <select id="sbModel"><option value="fast">Fast (small model)</option><option value="balanced" selected>Balanced</option><option value="accurate">Best (slow, big download)</option></select>
+        <h3 data-i18n="sb.h1">1. Transcribe</h3>
+        <p class="small muted" data-i18n="sb.desc">Uses the video chosen in Studio and its Start/End times. Runs on this Mac, no API key needed. The first run downloads a speech model.</p>
+        <label class="line"><span data-i18n="sb.acc">Accuracy</span>
+          <select id="sbModel"><option value="fast" data-i18n="sb.fast">Fast (small model)</option><option value="balanced" data-i18n="sb.balanced" selected>Balanced</option><option value="accurate" data-i18n="sb.best">Best (slow, big download)</option></select>
         </label>
-        <button id="sbGo" class="big">Transcribe</button>
+        <button id="sbGo" class="big" data-i18n="sb.go">Transcribe</button>
         <div id="sbStatus" class="small muted"></div>
-        <h3>2. Style</h3>
-        <label class="line">Words per caption <input type="range" id="sbWords" min="1" max="6" value="3"> <span id="sbWordsV">3</span> <button id="sbRegroup" class="ghost">Regroup</button></label>
-        <label class="line">Font
+        <h3 data-i18n="sb.h2">2. Style</h3>
+        <label class="line"><span data-i18n="sb.words">Words per caption</span> <input type="range" id="sbWords" min="1" max="6" value="3"> <span id="sbWordsV">3</span> <button id="sbRegroup" class="ghost" data-i18n="sb.regroup">Regroup</button></label>
+        <label class="line"><span data-i18n="sb.font">Font</span>
           <select id="sbFont"><option value="Impact">Impact</option><option value="Arial Black">Arial Black</option><option value="Helvetica Neue">Helvetica Neue</option><option value="Avenir Next">Avenir Next</option></select>
         </label>
-        <label class="line">Size <input type="range" id="sbSize" min="4" max="12" value="7"></label>
-        <label class="line">Color <input type="color" id="sbColor" value="#ffffff"> Outline <input type="color" id="sbOutline" value="#000000"></label>
-        <label class="line"><input type="checkbox" id="sbUpper" checked> ALL CAPS</label>
-        <label class="line">Position
-          <select id="sbPos"><option value="low" selected>Lower third</option><option value="mid">Middle</option><option value="top">Top</option></select>
+        <label class="line"><span data-i18n="c.size">Size</span> <input type="range" id="sbSize" min="4" max="12" value="7"></label>
+        <label class="line"><span data-i18n="c.color">Color</span> <input type="color" id="sbColor" value="#ffffff"> <span data-i18n="sb.outline">Outline</span> <input type="color" id="sbOutline" value="#000000"></label>
+        <label class="line"><input type="checkbox" id="sbUpper" checked> <span data-i18n="sb.caps">ALL CAPS</span></label>
+        <label class="line"><span data-i18n="c.pos">Position</span>
+          <select id="sbPos"><option value="low" data-i18n="sb.low" selected>Lower third</option><option value="mid" data-i18n="sb.mid">Middle</option><option value="top" data-i18n="sb.top">Top</option></select>
         </label>
         <canvas id="sbPrev" width="540" height="200"></canvas>
-        <p class="small muted">Then go to Studio, tick "Burn in subtitles" and export.</p>
+        <p class="small muted" data-i18n="sb.hint">Then go to Studio, tick "Burn in subtitles" and export.</p>
       </div>
       <div class="col">
-        <div class="bar"><h3 style="margin:0">Captions (edit anything)</h3><button id="sbAdd" class="ghost">Add line</button><button id="sbClear" class="ghost">Clear all</button></div>
-        <div id="sbList" class="out"><p class="muted">Nothing yet. Transcribe, or add lines by hand.</p></div>
+        <div class="bar"><h3 style="margin:0" data-i18n="sb.list">Captions (edit anything)</h3><button id="sbAdd" class="ghost" data-i18n="sb.add">Add line</button><button id="sbClear" class="ghost" data-i18n="sb.clear">Clear all</button></div>
+        <div id="sbList" class="out"><p class="muted" data-i18n="sb.empty">Nothing yet. Transcribe, or add lines by hand.</p></div>
       </div>
     </div>
   </section>
@@ -122,42 +132,42 @@
         <canvas id="cv" width="1280" height="720"></canvas>
       </div>
       <div class="col side">
-        <h3>Background</h3>
-        <div class="line"><button id="thPick" class="ghost">Choose video or image</button></div>
+        <h3 data-i18n="th.bg">Background</h3>
+        <div class="line"><button id="thPick" class="ghost" data-i18n="th.pick">Choose video or image</button></div>
         <div id="thName" class="muted small"></div>
-        <label class="line">Frame at (s) <input id="thTime" type="text" class="short" value="0"> <button id="thGrab" class="ghost">Grab frame</button></label>
-        <h3>Text</h3>
-        <input id="thText" type="text" placeholder="THUMBNAIL TEXT" spellcheck="false">
-        <label class="line">Position
-          <select id="thPos"><option value="top">Top</option><option value="mid">Middle</option><option value="bot" selected>Bottom</option></select>
+        <label class="line"><span data-i18n="th.frameAt">Frame at (s)</span> <input id="thTime" type="text" class="short" value="0"> <button id="thGrab" class="ghost" data-i18n="th.grab">Grab frame</button></label>
+        <h3 data-i18n="th.text">Text</h3>
+        <input id="thText" type="text" data-i18n-ph="th.textPh" placeholder="THUMBNAIL TEXT" spellcheck="false">
+        <label class="line"><span data-i18n="c.pos">Position</span>
+          <select id="thPos"><option value="top" data-i18n="th.top">Top</option><option value="mid" data-i18n="th.mid">Middle</option><option value="bot" data-i18n="th.bot" selected>Bottom</option></select>
         </label>
-        <label class="line">Size <input type="range" id="thSize" min="50" max="200" value="130"></label>
-        <label class="line">Color <input type="color" id="thColor" value="#ffd60a"></label>
-        <label class="line"><input type="checkbox" id="thDark" checked> Darken for contrast</label>
-        <label class="line"><input type="checkbox" id="thLogo" checked> Show my logo</label>
-        <button id="thSave" class="big">Save PNG</button>
-        <p class="small muted">Use a real screenshot or frame from your own gameplay. Don't use Rockstar's official art or logos.</p>
+        <label class="line"><span data-i18n="c.size">Size</span> <input type="range" id="thSize" min="50" max="200" value="130"></label>
+        <label class="line"><span data-i18n="c.color">Color</span> <input type="color" id="thColor" value="#ffd60a"></label>
+        <label class="line"><input type="checkbox" id="thDark" checked> <span data-i18n="th.dark">Darken for contrast</span></label>
+        <label class="line"><input type="checkbox" id="thLogo" checked> <span data-i18n="th.logo">Show my logo</span></label>
+        <button id="thSave" class="big" data-i18n="th.save">Save PNG</button>
+        <p class="small muted" data-i18n="th.hint">Use a real screenshot or frame from your own gameplay. Don't use Rockstar's official art or logos.</p>
       </div>
     </div>
   </section>
 
-  <!-- CAPTIONS -->
+  <!-- POST TEXT -->
   <section id="tab-captions" class="tab" hidden>
     <div class="cols">
       <div class="col side wide">
-        <h3>Tell Claude about the clip</h3>
-        <textarea id="cpDesc" rows="5" placeholder="What happens in the video? (e.g. first time driving through Vice City at night, police chase ends in the water)"></textarea>
-        <label class="line">Topic <input id="cpTopic" type="text" value="GTA 6"></label>
-        <label class="line">Platform
-          <select id="cpPlat"><option>YouTube Short</option><option>YouTube video</option><option>Facebook Reel</option><option>Facebook post</option></select>
+        <h3 data-i18n="cp.h">Tell Claude about the clip</h3>
+        <textarea id="cpDesc" rows="5" data-i18n-ph="cp.descPh" placeholder="What happens in the video? (e.g. first time driving through Vice City at night, police chase ends in the water)"></textarea>
+        <label class="line"><span data-i18n="cp.topic">Topic</span> <input id="cpTopic" type="text" value="GTA 6"></label>
+        <label class="line"><span data-i18n="cp.plat">Platform</span>
+          <select id="cpPlat"><option value="YouTube Short" data-i18n="cp.ys">YouTube Short</option><option value="YouTube video" data-i18n="cp.yv">YouTube video</option><option value="Facebook Reel" data-i18n="cp.fr">Facebook Reel</option><option value="Facebook post" data-i18n="cp.fp">Facebook post</option></select>
         </label>
-        <label class="line">Tone
-          <select id="cpTone"><option>Hyped</option><option>Chill</option><option>Funny</option><option>Serious news</option></select>
+        <label class="line"><span data-i18n="cp.tone">Tone</span>
+          <select id="cpTone"><option value="Hyped" data-i18n="cp.hyped">Hyped</option><option value="Chill" data-i18n="cp.chill">Chill</option><option value="Funny" data-i18n="cp.funny">Funny</option><option value="Serious news" data-i18n="cp.news">Serious news</option></select>
         </label>
-        <button id="cpGo" class="big">Generate</button>
+        <button id="cpGo" class="big" data-i18n="cp.go">Generate</button>
       </div>
       <div class="col">
-        <div id="cpOut" class="out"><p class="muted">Results will show up here.</p></div>
+        <div id="cpOut" class="out"><p class="muted" data-i18n="cp.results">Results will show up here.</p></div>
       </div>
     </div>
   </section>
@@ -167,33 +177,33 @@
     <div class="chips" id="idChips"></div>
     <div id="chat" class="chat"></div>
     <div class="bar">
-      <label class="muted"><input type="checkbox" id="idWeb"> Search the web for trends</label>
+      <label class="muted"><input type="checkbox" id="idWeb"> <span data-i18n="id.web">Search the web for trends</span></label>
     </div>
     <div class="bar">
-      <textarea id="idIn" rows="2" placeholder="Ask for video ideas..."></textarea>
-      <button id="idSend">Send</button>
-      <button id="idClear" class="ghost">New chat</button>
+      <textarea id="idIn" rows="2" data-i18n-ph="id.ph" placeholder="Ask for video ideas..."></textarea>
+      <button id="idSend" data-i18n="id.send">Send</button>
+      <button id="idClear" class="ghost" data-i18n="id.clear">New chat</button>
     </div>
   </section>
 
   <!-- SETTINGS -->
   <section id="tab-settings" class="tab" hidden>
     <div class="side wide">
-      <h3>Anthropic API key</h3>
-      <p class="small muted">Needed for captions and ideas. Get one at console.anthropic.com. It is billed per use and is separate from your Claude chat plan. The key is stored encrypted on this Mac.</p>
+      <h3 data-i18n="set.key">Anthropic API key</h3>
+      <p class="small muted" data-i18n="set.keyDesc">Needed for captions and ideas. Get one at console.anthropic.com. It is billed per use and is separate from your Claude chat plan. The key is stored encrypted on this Mac.</p>
       <div class="line"><input id="keyIn" type="password" placeholder="sk-ant-..." spellcheck="false" autocomplete="off"></div>
-      <div class="line"><button id="keySave">Save key</button> <button id="keyDel" class="ghost">Remove key</button> <button id="keyTest" class="ghost">Test</button></div>
+      <div class="line"><button id="keySave" data-i18n="set.saveKey">Save key</button> <button id="keyDel" class="ghost" data-i18n="set.removeKey">Remove key</button> <button id="keyTest" class="ghost" data-i18n="set.test">Test</button></div>
       <div id="keyState" class="small"></div>
-      <h3>Updates</h3>
+      <h3 data-i18n="set.upd">Updates</h3>
       <div id="verLine" class="small muted"></div>
-      <div class="line"><button id="updCheck" class="ghost">Check for updates</button> <button id="updRestart" class="ghost" hidden>Restart to update</button> <button id="updReleases" class="ghost" hidden>Open download page</button></div>
-      <h3>Model</h3>
-      <div class="line"><input id="modelIn" type="text" spellcheck="false"> <button id="modelSave" class="ghost">Save</button></div>
-      <p class="small muted">Leave the default unless you know you want another Claude model.</p>
+      <div class="line"><button id="updCheck" class="ghost" data-i18n="set.check">Check for updates</button> <button id="updRestart" class="ghost" data-i18n="set.restart" hidden>Restart to update</button> <button id="updReleases" class="ghost" data-i18n="set.openPage" hidden>Open download page</button></div>
+      <h3 data-i18n="set.model">Model</h3>
+      <div class="line"><input id="modelIn" type="text" spellcheck="false"> <button id="modelSave" class="ghost" data-i18n="c.save">Save</button></div>
+      <p class="small muted" data-i18n="set.modelHint">Leave the default unless you know you want another Claude model.</p>
     </div>
   </section>
 </main>
-<div id="upd" hidden><span id="updText"></span> <button id="updNow">Restart</button> <button id="updX" class="ghost">Later</button></div>
+<div id="upd" hidden><span id="updText"></span> <button id="updNow">Restart</button> <button id="updX" class="ghost" data-i18n="upd.later">Later</button></div>
 <div id="toast"></div>
 <script src="app.js"></script>
 </body>

@@ -31,34 +31,34 @@ function loadImg(src) {
   return new Promise((res, rej) => {
     const i = new Image();
     i.onload = () => res(i);
-    i.onerror = () => rej(new Error('Could not load image.'));
+    i.onerror = () => rej(new Error(tr('err.image')));
     i.src = src;
   });
 }
 function copy(text) {
-  navigator.clipboard.writeText(text).then(() => toast('Copied.')).catch(() => toast('Could not copy.'));
+  navigator.clipboard.writeText(text).then(() => toast(tr('t.copied'))).catch(() => toast(tr('t.copyFail')));
 }
 function fileName(p) { return String(p || '').split('/').pop(); }
 
 // ---------- tabs ----------
 function showTab(name) {
-  $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $$('#nav button.nb').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
   $$('.tab').forEach(s => { s.hidden = s.id !== 'tab-' + name; });
   if (name === 'thumbs') drawThumb();
 }
-$$('#nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$$('#nav button.nb').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
 // ---------- settings ----------
 async function refreshSettings() {
   state.settings = await api.getSettings();
   const s = state.settings;
-  $('#logoName').textContent = s.logoPath ? fileName(s.logoPath) : 'none yet';
+  $('#logoName').textContent = s.logoPath ? fileName(s.logoPath) : tr('s.noLogo');
   $('#logoPos').value = s.logoPos;
   $('#logoScale').value = s.logoScale;
   $('#logoScaleV').textContent = s.logoScale + '%';
   $('#outDir').textContent = s.outputDir;
   $('#modelIn').value = s.model;
-  $('#keyState').textContent = s.hasKey ? 'A key is saved.' : 'No key saved yet.';
+  $('#keyState').textContent = s.hasKey ? tr('set.hasKey') : tr('set.noKey');
   state.logoData = null;
   if (s.logoPath) {
     try { state.logoData = await loadImg(await api.readImage(s.logoPath)); } catch { state.logoData = null; }
@@ -68,24 +68,24 @@ async function refreshSettings() {
 
 $('#keySave').addEventListener('click', async () => {
   const v = $('#keyIn').value.trim();
-  if (!v) return toast('Paste your key first.');
+  if (!v) return toast(tr('t.pasteKey'));
   await api.setKey(v);
   $('#keyIn').value = '';
   await refreshSettings();
-  toast('Key saved.');
+  toast(tr('t.keySaved'));
 });
-$('#keyDel').addEventListener('click', async () => { await api.setKey(''); await refreshSettings(); toast('Key removed.'); });
+$('#keyDel').addEventListener('click', async () => { await api.setKey(''); await refreshSettings(); toast(tr('t.keyRemoved')); });
 $('#keyTest').addEventListener('click', async () => {
   try {
     const r = await api.ask({ system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'Test' }], maxTokens: 20 });
-    toast('Works: ' + r.slice(0, 40));
-  } catch (e) { toast(e.message); }
+    toast(tr('t.works') + r.slice(0, 40));
+  } catch (e) { toast(errMsg(e)); }
 });
 $('#modelSave').addEventListener('click', async () => {
   const v = $('#modelIn').value.trim();
   if (!v) return;
   await api.setSettings({ model: v });
-  toast('Model saved.');
+  toast(tr('t.modelSaved'));
 });
 
 // ---------- WATCH ----------
@@ -98,8 +98,8 @@ function go(url) {
   url = url.trim();
   if (!url) return;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-  try { url = new URL(url).toString(); } catch { return toast('That link does not look right.'); }
-  if (!url.startsWith('https://')) return toast('Only https links are allowed.');
+  try { url = new URL(url).toString(); } catch { return toast(tr('t.badLink')); }
+  if (!url.startsWith('https://')) return toast(tr('t.httpsOnly'));
   web.src = url;
   $('#wUrl').value = url;
 }
@@ -110,7 +110,7 @@ function renderChips() {
     const b = document.createElement('button');
     b.className = 'chip';
     b.textContent = n;
-    b.title = 'Open (right-click to remove)';
+    b.title = tr('w.chipTitle');
     b.addEventListener('click', () => go('https://www.twitch.tv/' + n));
     b.addEventListener('contextmenu', e => {
       e.preventDefault();
@@ -128,7 +128,7 @@ $('#wFwd').addEventListener('click', () => { try { web.goForward(); } catch {} }
 $('#wReload').addEventListener('click', () => { try { web.reload(); } catch {} });
 $('#wAddBtn').addEventListener('click', () => {
   const n = $('#wAdd').value.trim().toLowerCase().replace(/^@/, '');
-  if (!/^[a-z0-9_]{1,25}$/.test(n)) return toast('That does not look like a Twitch name.');
+  if (!/^[a-z0-9_]{1,25}$/.test(n)) return toast(tr('t.badName'));
   if (!streamers.includes(n)) streamers.push(n);
   try { localStorage.setItem('streamers', JSON.stringify(streamers)); } catch {}
   $('#wAdd').value = '';
@@ -140,7 +140,7 @@ renderChips();
 
 // ---------- STUDIO ----------
 function loadVideo(p) {
-  if (!VIDEO_RE.test(p)) return toast('Please choose a video file (mp4, mov, mkv, webm).');
+  if (!VIDEO_RE.test(p)) return toast(tr('t.pickVideoFile'));
   state.videoPath = p;
   state.duration = 0;
   const v = $('#vid');
@@ -149,10 +149,10 @@ function loadVideo(p) {
     $('#startT').value = '0:00';
     $('#endT').value = state.duration ? fmt(state.duration) : '';
   };
-  v.onerror = () => toast('Preview is not supported for this file, but exporting still works. Type the times by hand.');
+  v.onerror = () => toast(tr('t.noPreview'));
   v.src = api.fileUrl(p);
   $('#vidName').textContent = fileName(p);
-  $('#thName').textContent = 'Using video: ' + fileName(p);
+  renderThName();
 }
 $('#pickVideo').addEventListener('click', async () => { const p = await api.openFile('video'); if (p) loadVideo(p); });
 const drop = $('#drop');
@@ -186,26 +186,26 @@ $('#pickOut').addEventListener('click', async () => {
 });
 
 $('#exportBtn').addEventListener('click', async () => {
-  if (!state.videoPath) return toast('Choose a video first.');
+  if (!state.videoPath) return toast(tr('t.chooseVideo'));
   const start = parseTime($('#startT').value) ?? 0;
   const endRaw = $('#endT').value.trim();
   const end = endRaw ? parseTime(endRaw) : null;
-  if (endRaw && end === null) return toast('End time looks wrong. Use 1:30 or 90.');
-  if (end !== null && end <= start) return toast('End must be after start.');
+  if (endRaw && end === null) return toast(tr('t.badEnd'));
+  if (end !== null && end <= start) return toast(tr('t.endAfter'));
   const addLogo = $('#addLogo').checked;
-  if (addLogo && !state.settings.logoPath) return toast('Choose your logo first.');
+  if (addLogo && !state.settings.logoPath) return toast(tr('t.chooseLogo'));
   const btn = $('#exportBtn'), prog = $('#prog'), result = $('#result');
-  btn.disabled = true; btn.textContent = 'Exporting...';
+  btn.disabled = true; btn.textContent = tr('s.exporting');
   prog.hidden = false; prog.value = 0; result.textContent = '';
   api.onProgress(v => { prog.value = v; });
   try {
     const orientation = $('input[name=orient]:checked').value;
     let captions = [], captionH = 400;
     if ($('#burnSubs').checked) {
-      if (!state.subs.length) throw new Error('No subtitles yet. Make them in the Subtitles tab first, or untick the box.');
+      if (!state.subs.length) throw new Error(tr('t.noSubs'));
       const rendered = renderCaptionPngs(orientation === 'vertical' ? 1080 : 1920, start, end);
       captions = rendered.caps; captionH = rendered.h;
-      if (!captions.length) throw new Error('None of your subtitles fall inside the Start/End range.');
+      if (!captions.length) throw new Error(tr('t.subsOutside'));
     }
     const r = await api.convert({
       captions, captionH, captionPos: $('#sbPos').value,
@@ -219,13 +219,13 @@ $('#exportBtn').addEventListener('click', async () => {
     prog.value = 1;
     result.textContent = '';
     const a = document.createElement('button');
-    a.className = 'ghost'; a.textContent = 'Show in Finder';
+    a.className = 'ghost'; a.textContent = tr('s.finder');
     a.addEventListener('click', () => api.showInFolder(r.output));
-    result.append('Saved: ' + fileName(r.output) + ' ', a);
+    result.append(tr('s.saved') + fileName(r.output) + ' ', a);
   } catch (e) {
-    result.textContent = e.message;
+    result.textContent = errMsg(e);
   } finally {
-    btn.disabled = false; btn.textContent = 'Export clip';
+    btn.disabled = false; btn.textContent = tr('s.export');
   }
 });
 
@@ -255,7 +255,7 @@ function drawThumb() {
     ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
   } else {
     ctx.fillStyle = '#666'; ctx.font = '36px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('Choose a video or image', W / 2, H / 2);
+    ctx.fillText(tr('th.empty'), W / 2, H / 2);
   }
   if ($('#thDark').checked && img) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -298,32 +298,32 @@ $('#thPick').addEventListener('click', async () => {
   try {
     if (VIDEO_RE.test(p)) {
       thumbSource = { type: 'video', path: p };
-      $('#thName').textContent = 'Using video: ' + fileName(p);
+      renderThName();
       await grabFrame();
     } else {
       thumbSource = { type: 'image', path: p };
-      $('#thName').textContent = 'Using image: ' + fileName(p);
+      renderThName();
       state.thumbImg = await loadImg(await api.readImage(p));
       drawThumb();
     }
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(errMsg(e)); }
 });
 async function grabFrame() {
   const src = thumbSource || (state.videoPath ? { type: 'video', path: state.videoPath } : null);
-  if (!src || src.type !== 'video') return toast('Choose a video first.');
+  if (!src || src.type !== 'video') return toast(tr('t.chooseVideo'));
   const t = parseTime($('#thTime').value) ?? 0;
   try {
     state.thumbImg = await loadImg(await api.grabFrame(src.path, t));
     drawThumb();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(errMsg(e)); }
 }
 $('#thGrab').addEventListener('click', grabFrame);
 $('#thSave').addEventListener('click', async () => {
-  if (!state.thumbImg) return toast('Choose a video or image first.');
+  if (!state.thumbImg) return toast(tr('t.chooseMedia'));
   try {
     const p = await api.saveImage(cv.toDataURL('image/png'), 'thumbnail');
-    if (p) toast('Saved ' + fileName(p));
-  } catch (e) { toast(e.message); }
+    if (p) toast(tr('t.saved') + fileName(p));
+  } catch (e) { toast(errMsg(e)); }
 });
 
 // ---------- CAPTIONS ----------
@@ -350,7 +350,7 @@ function group(title, items, extra) {
   items.forEach(t => {
     const row = document.createElement('div'); row.className = 'item';
     const s = document.createElement('span'); s.textContent = t;
-    const c = document.createElement('button'); c.className = 'ghost'; c.textContent = 'Copy';
+    const c = document.createElement('button'); c.className = 'ghost'; c.textContent = tr('c.copy');
     c.addEventListener('click', () => copy(t));
     row.append(s, c);
     if (extra) row.appendChild(extra(t));
@@ -360,9 +360,9 @@ function group(title, items, extra) {
 }
 $('#cpGo').addEventListener('click', async () => {
   const desc = $('#cpDesc').value.trim();
-  if (!desc) return toast('Describe the clip first.');
+  if (!desc) return toast(tr('t.describe'));
   const btn = $('#cpGo'), out = $('#cpOut');
-  btn.disabled = true; btn.textContent = 'Writing...';
+  btn.disabled = true; btn.textContent = tr('cp.writing');
   out.textContent = '';
   try {
     const prompt = `Topic: ${$('#cpTopic').value}\nPlatform: ${$('#cpPlat').value}\nLanguage: English\nTone: ${$('#cpTone').value}\nWhat happens in the video: ${desc}`;
@@ -373,19 +373,19 @@ $('#cpGo').addEventListener('click', async () => {
       const p = document.createElement('div'); p.className = 'grp'; p.style.whiteSpace = 'pre-wrap'; p.textContent = raw; out.appendChild(p);
       return;
     }
-    out.appendChild(group('Titles', j.titles || []));
-    out.appendChild(group('Thumbnail text (click Use)', j.thumbnail_texts || [], t => {
-      const u = document.createElement('button'); u.textContent = 'Use';
+    out.appendChild(group(tr('cp.titles'), j.titles || []));
+    out.appendChild(group(tr('cp.thumbTexts'), j.thumbnail_texts || [], t => {
+      const u = document.createElement('button'); u.textContent = tr('c.use');
       u.addEventListener('click', () => { $('#thText').value = t; showTab('thumbs'); drawThumb(); });
       return u;
     }));
-    out.appendChild(group('Caption', [j.caption || '']));
+    out.appendChild(group(tr('cp.caption'), [j.caption || '']));
     const tags = (j.hashtags || []).map(h => '#' + String(h).replace(/^#/, ''));
-    out.appendChild(group('Hashtags', [tags.join(' ')]));
+    out.appendChild(group(tr('cp.hashtags'), [tags.join(' ')]));
   } catch (e) {
-    out.textContent = e.message;
+    out.textContent = errMsg(e);
   } finally {
-    btn.disabled = false; btn.textContent = 'Generate';
+    btn.disabled = false; btn.textContent = tr('cp.go');
   }
 });
 
@@ -393,12 +393,13 @@ $('#cpGo').addEventListener('click', async () => {
 const IDEAS_SYSTEM = () => `You are a content strategist for a creator who makes GTA 6 videos for YouTube and Facebook. Today is ${new Date().toDateString()}.
 Suggest only ideas that can be made legally and originally: the creator's own gameplay recordings, their own commentary and voice, tips, guides, comparisons, tier lists, reactions and news explainers in the creator's own words. Short clips of other people's footage only with permission.
 For each idea give: a working title, the hook for the first 3 seconds, the format and length, and what footage is needed. Keep it tight and practical. If the web search tool is available, use it for what is trending and say what you found. Never invent facts about the game.`;
-const QUICK = [
-  '10 video ideas for this week',
-  '5 Shorts ideas I can make in under an hour',
-  'What are people searching for about GTA 6 right now?',
-  'Give me a 7 day posting plan for YouTube and Facebook'
-];
+const QUICK = ['id.q1', 'id.q2', 'id.q3', 'id.q4'];
+const QUICK_EN = {
+  'id.q1': '10 video ideas for this week',
+  'id.q2': '5 Shorts ideas I can make in under an hour',
+  'id.q3': 'What are people searching for about GTA 6 right now?',
+  'id.q4': 'Give me a 7 day posting plan for YouTube and Facebook'
+};
 function addMsg(role, text) {
   const d = document.createElement('div');
   d.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
@@ -407,31 +408,37 @@ function addMsg(role, text) {
   $('#chat').scrollTop = $('#chat').scrollHeight;
   return d;
 }
-async function sendIdea(text) {
+async function sendIdea(text, shown) {
   text = (text || $('#idIn').value).trim();
   if (!text) return;
   $('#idIn').value = '';
   state.chat.push({ role: 'user', content: text });
-  addMsg('user', text);
-  const wait = addMsg('ai', 'Thinking...');
+  addMsg('user', shown || text);
+  const wait = addMsg('ai', tr('id.thinking'));
   $('#idSend').disabled = true;
   try {
     const r = await api.ask({ system: IDEAS_SYSTEM(), messages: state.chat.slice(-20), webSearch: $('#idWeb').checked, maxTokens: 2500 });
-    wait.textContent = r || '(empty reply)';
+    wait.textContent = r || tr('id.empty');
     state.chat.push({ role: 'assistant', content: r || '(empty reply)' });
   } catch (e) {
-    wait.textContent = e.message;
+    wait.textContent = errMsg(e);
     state.chat.pop();
   } finally {
     $('#idSend').disabled = false;
   }
 }
-QUICK.forEach(q => {
-  const b = document.createElement('button');
-  b.className = 'chip'; b.textContent = q;
-  b.addEventListener('click', () => sendIdea(q));
-  $('#idChips').appendChild(b);
-});
+function renderQuick() {
+  const box = $('#idChips');
+  box.textContent = '';
+  QUICK.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = tr(k);
+    // the question is always sent to Claude in English; only the button label is translated
+    b.addEventListener('click', () => sendIdea(QUICK_EN[k], tr(k)));
+    box.appendChild(b);
+  });
+}
+renderQuick();
 $('#idSend').addEventListener('click', () => sendIdea());
 $('#idIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendIdea(); } });
 $('#idClear').addEventListener('click', () => { state.chat = []; $('#chat').textContent = ''; });
@@ -466,7 +473,7 @@ function renderSubList() {
   const box = $('#sbList');
   box.textContent = '';
   if (!state.subs.length) {
-    const p = document.createElement('p'); p.className = 'muted'; p.textContent = 'Nothing yet. Transcribe, or add lines by hand.'; box.appendChild(p);
+    const p = document.createElement('p'); p.className = 'muted'; p.textContent = tr('sb.empty'); box.appendChild(p);
     return;
   }
   state.subs.forEach((s, i) => {
@@ -477,8 +484,8 @@ function renderSubList() {
     a.addEventListener('change', () => { const v = parseTime(a.value); if (v !== null) s.start = v; a.value = fmt(s.start); });
     b.addEventListener('change', () => { const v = parseTime(b.value); if (v !== null && v > s.start) s.end = v; b.value = fmt(s.end); });
     x.addEventListener('input', () => { s.text = x.value; });
-    const seek = document.createElement('button'); seek.className = 'ghost'; seek.textContent = 'Go';
-    seek.title = 'Jump to this time in the Studio preview';
+    const seek = document.createElement('button'); seek.className = 'ghost'; seek.textContent = tr('c.go');
+    seek.title = tr('sb.seek');
     seek.addEventListener('click', () => { try { $('#vid').currentTime = s.start; } catch {} });
     const del = document.createElement('button'); del.className = 'ghost'; del.textContent = 'x';
     del.addEventListener('click', () => { state.subs.splice(i, 1); renderSubList(); });
@@ -519,7 +526,7 @@ function drawSubPreview() {
   const scale = sbPrev.width / 1080;
   const c = sbx;
   c.save();
-  drawCaption(c, sbPrev.width, sbPrev.height, 'This is how it looks', st, Math.round(st.sizePct / 100 * 1080 * scale));
+  drawCaption(c, sbPrev.width, sbPrev.height, tr('sb.preview'), st, Math.round(st.sizePct / 100 * 1080 * scale));
   c.restore();
 }
 ['sbFont', 'sbSize', 'sbColor', 'sbOutline', 'sbUpper'].forEach(id => {
@@ -548,52 +555,70 @@ function renderCaptionPngs(W, start, end) {
 
 $('#sbWords').addEventListener('input', e => { $('#sbWordsV').textContent = e.target.value; });
 $('#sbRegroup').addEventListener('click', () => {
-  if (!state.words.length) return toast('Transcribe first. Regrouping works on the transcribed words.');
+  if (!state.words.length) return toast(tr('t.transcribeFirst'));
   state.subs = groupWords(state.words, +$('#sbWords').value);
   renderSubList();
-  toast('Regrouped. Your manual edits were replaced.');
+  toast(tr('t.regrouped'));
 });
 $('#sbAdd').addEventListener('click', () => {
   const t = $('#vid').currentTime || 0;
-  state.subs.push({ start: r2(t), end: r2(t + 2), text: 'New line' });
+  state.subs.push({ start: r2(t), end: r2(t + 2), text: tr('sb.newLine') });
   state.subs.sort((a, b) => a.start - b.start);
   renderSubList();
 });
 $('#sbClear').addEventListener('click', () => { state.subs = []; state.words = []; renderSubList(); });
 
 $('#sbGo').addEventListener('click', async () => {
-  if (!state.videoPath) { toast('Choose a video in Studio first.'); return showTab('studio'); }
+  if (!state.videoPath) { toast(tr('t.chooseVideoStudio')); return showTab('studio'); }
   const start = parseTime($('#startT').value) ?? 0;
   const endRaw = $('#endT').value.trim();
   const end = endRaw ? parseTime(endRaw) : null;
-  if (end !== null && end <= start) return toast('End must be after start (set them in Studio).');
+  if (end !== null && end <= start) return toast(tr('t.endAfterStudio'));
   const btn = $('#sbGo'), status = $('#sbStatus');
-  btn.disabled = true; btn.textContent = 'Working...';
-  api.onTranscribeStatus(m => { status.textContent = m; });
+  btn.disabled = true; btn.textContent = tr('sb.working');
+  api.onTranscribeStatus(m => { status.textContent = statusMsg(m); });
   try {
     state.words = await api.transcribe({ input: state.videoPath, start, end, model: $('#sbModel').value });
     state.subs = groupWords(state.words, +$('#sbWords').value);
     renderSubList();
-    status.textContent = `Done: ${state.words.length} words. Fix any mistakes on the right.`;
+    status.textContent = tr('t.done', { n: state.words.length });
     $('#burnSubs').checked = true;
   } catch (e) {
-    status.textContent = e.message;
+    status.textContent = errMsg(e);
   } finally {
-    btn.disabled = false; btn.textContent = 'Transcribe';
+    btn.disabled = false; btn.textContent = tr('sb.go');
   }
 });
 
 // ---------- UPDATES ----------
-let updDismissed = false;
+let updDismissed = false, lastUpd = null;
+function updText(s) {
+  const v = s.version || '';
+  switch (s.state) {
+    case 'disabled': return tr('upd.disabled');
+    case 'checking': return tr('upd.checking');
+    case 'uptodate': return tr('upd.uptodate');
+    case 'downloading': return tr('upd.downloading', { v });
+    case 'ready': return tr('upd.ready', { v });
+    case 'needs-install': return tr('upd.needs');
+    case 'error': {
+      const detail = String(s.message || '').replace(/^Update check failed:\s*/, '');
+      return tr('upd.error') + (detail ? ' (' + detail + ')' : '');
+    }
+    default: return '';
+  }
+}
 function showUpdate(s) {
   if (!s) return;
-  $('#verLine').textContent = 'Version ' + (s.current || '?') + (s.message ? '. ' + s.message : '');
+  lastUpd = s;
+  const extra = updText(s);
+  $('#verLine').textContent = tr('set.version', { v: s.current || '?' }) + (extra ? '. ' + extra : '');
   $('#updRestart').hidden = s.state !== 'ready';
   $('#updReleases').hidden = s.state !== 'needs-install';
   const banner = $('#upd');
   if ((s.state === 'ready' || s.state === 'needs-install') && !updDismissed) {
-    $('#updText').textContent = s.state === 'ready' ? `ClipDesk ${s.version} is ready.` : 'A bigger update needs a new download.';
-    $('#updNow').textContent = s.state === 'ready' ? 'Restart' : 'Open page';
+    $('#updText').textContent = s.state === 'ready' ? tr('upd.bannerReady', { v: s.version }) : tr('upd.bannerNeeds');
+    $('#updNow').textContent = s.state === 'ready' ? tr('upd.restartBtn') : tr('upd.pageBtn');
     banner.hidden = false;
   } else {
     banner.hidden = true;
@@ -603,12 +628,32 @@ function showUpdate(s) {
 $('#updCheck').addEventListener('click', () => { updDismissed = false; api.checkUpdate(); });
 $('#updRestart').addEventListener('click', () => api.restartForUpdate());
 $('#updReleases').addEventListener('click', () => api.openReleases());
-$('#updNow').addEventListener('click', () => { if ($('#updNow').textContent === 'Restart') api.restartForUpdate(); else api.openReleases(); });
+$('#updNow').addEventListener('click', () => { if (lastUpd && lastUpd.state === 'ready') api.restartForUpdate(); else api.openReleases(); });
 $('#updX').addEventListener('click', () => { updDismissed = true; $('#upd').hidden = true; });
 api.onUpdate(showUpdate);
 api.getUpdate().then(showUpdate).catch(() => {});
 
+// ---------- LANGUAGE AND THEME ----------
+function renderThName() {
+  const src = thumbSource || (state.videoPath ? { type: 'video', path: state.videoPath } : null);
+  $('#thName').textContent = src ? tr(src.type === 'image' ? 'th.usingImage' : 'th.usingVideo') + fileName(src.path) : '';
+}
+$$('[data-lang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+$('#themeBtn').addEventListener('click', () => setTheme(getTheme() === 'dark' ? 'light' : 'dark'));
+document.addEventListener('langchange', () => {
+  refreshSettings();
+  renderSubList();
+  renderQuick();
+  renderChips();
+  renderThName();
+  drawThumb();
+  drawSubPreview();
+  if (lastUpd) showUpdate(lastUpd);
+});
+
 // ---------- init ----------
+applyI18n();
+renderThName();
 drawSubPreview();
 refreshSettings();
 drawThumb();
