@@ -1,13 +1,24 @@
 name: Release
 
-# Publishing a version: push a tag like v1.0.1. GitHub then builds the DMGs
-# (Apple Silicon and Intel) and the small code-only update file, and attaches them to a release.
+# Two ways to publish a version:
+#  1. In the Actions tab: choose "Release", press "Run workflow" and type a version such as 1.0.1
+#  2. Push a tag like v1.0.1
+# Either way GitHub builds the DMGs (Apple Silicon and Intel) and the small code-only update file,
+# then attaches them to a release.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number, for example 1.0.1'
+        required: true
 
 permissions:
   contents: write
+
+env:
+  RAW_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
 jobs:
   build:
@@ -20,8 +31,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Set version from tag
-        run: npm pkg set version="${GITHUB_REF_NAME#v}"
+      - name: Set version
+        run: |
+          V="${RAW_VERSION#v}"
+          echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Bad version: $V"; exit 1; }
+          npm pkg set version="$V"
       - run: npm install
       - run: npx electron-builder --mac dmg --publish never
       - uses: actions/upload-artifact@v4
@@ -40,11 +54,18 @@ jobs:
           merge-multiple: true
       - name: Build code-only update file
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          V="${RAW_VERSION#v}"
+          echo "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "Bad version: $V"; exit 1; }
           SHELL_V=$(node -p "require('./package.json').clipdeskUpdate.shell")
-          node -e "require('fs').writeFileSync('update-manifest.json', JSON.stringify({version: process.argv[1], minShell: Number(process.argv[2])}))" "$VERSION" "$SHELL_V"
+          node -e "require('fs').writeFileSync('update-manifest.json', JSON.stringify({version: process.argv[1], minShell: Number(process.argv[2])}))" "$V" "$SHELL_V"
           tar -czf clipdesk-code.tar.gz main.js preload.js renderer update-manifest.json
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dmgs/*.dmg clipdesk-code.tar.gz --title "ClipDesk $GITHUB_REF_NAME" --generate-notes
+        run: |
+          V="${RAW_VERSION#v}"
+          if gh release view "v$V" >/dev/null 2>&1; then
+            gh release upload "v$V" dmgs/*.dmg clipdesk-code.tar.gz --clobber
+          else
+            gh release create "v$V" dmgs/*.dmg clipdesk-code.tar.gz --target "$GITHUB_SHA" --title "ClipDesk v$V" --generate-notes
+          fi
