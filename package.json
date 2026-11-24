@@ -2,10 +2,14 @@
   "name": "clipdesk",
   "version": "1.0.0",
   "description": "ClipDesk: trim, convert and brand your own clips, and get captions, thumbnails and ideas from Claude.",
-  "main": "main.js",
+  "main": "boot.js",
   "author": "ClipDesk",
   "license": "UNLICENSED",
   "private": true,
+  "clipdeskUpdate": {
+    "repo": "gramozmakolli/ClipDesk",
+    "shell": 1
+  },
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --mac dmg"
@@ -21,7 +25,10 @@
   "build": {
     "appId": "com.clipdesk.app",
     "productName": "ClipDesk",
+    "artifactName": "ClipDesk-${version}-${arch}.${ext}",
     "files": [
+      "boot.js",
+      "updater.js",
       "main.js",
       "preload.js",
       "renderer/**/*",

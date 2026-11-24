@@ -184,12 +184,16 @@
       <div class="line"><input id="keyIn" type="password" placeholder="sk-ant-..." spellcheck="false" autocomplete="off"></div>
       <div class="line"><button id="keySave">Save key</button> <button id="keyDel" class="ghost">Remove key</button> <button id="keyTest" class="ghost">Test</button></div>
       <div id="keyState" class="small"></div>
+      <h3>Updates</h3>
+      <div id="verLine" class="small muted"></div>
+      <div class="line"><button id="updCheck" class="ghost">Check for updates</button> <button id="updRestart" class="ghost" hidden>Restart to update</button> <button id="updReleases" class="ghost" hidden>Open download page</button></div>
       <h3>Model</h3>
       <div class="line"><input id="modelIn" type="text" spellcheck="false"> <button id="modelSave" class="ghost">Save</button></div>
       <p class="small muted">Leave the default unless you know you want another Claude model.</p>
     </div>
   </section>
 </main>
+<div id="upd" hidden><span id="updText"></span> <button id="updNow">Restart</button> <button id="updX" class="ghost">Later</button></div>
 <div id="toast"></div>
 <script src="app.js"></script>
 </body>

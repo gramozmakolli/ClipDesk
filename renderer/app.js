@@ -583,6 +583,31 @@ $('#sbGo').addEventListener('click', async () => {
   }
 });
 
+// ---------- UPDATES ----------
+let updDismissed = false;
+function showUpdate(s) {
+  if (!s) return;
+  $('#verLine').textContent = 'Version ' + (s.current || '?') + (s.message ? '. ' + s.message : '');
+  $('#updRestart').hidden = s.state !== 'ready';
+  $('#updReleases').hidden = s.state !== 'needs-install';
+  const banner = $('#upd');
+  if ((s.state === 'ready' || s.state === 'needs-install') && !updDismissed) {
+    $('#updText').textContent = s.state === 'ready' ? `ClipDesk ${s.version} is ready.` : 'A bigger update needs a new download.';
+    $('#updNow').textContent = s.state === 'ready' ? 'Restart' : 'Open page';
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
+  $('#updCheck').disabled = s.state === 'checking' || s.state === 'downloading';
+}
+$('#updCheck').addEventListener('click', () => { updDismissed = false; api.checkUpdate(); });
+$('#updRestart').addEventListener('click', () => api.restartForUpdate());
+$('#updReleases').addEventListener('click', () => api.openReleases());
+$('#updNow').addEventListener('click', () => { if ($('#updNow').textContent === 'Restart') api.restartForUpdate(); else api.openReleases(); });
+$('#updX').addEventListener('click', () => { updDismissed = true; $('#upd').hidden = true; });
+api.onUpdate(showUpdate);
+api.getUpdate().then(showUpdate).catch(() => {});
+
 // ---------- init ----------
 drawSubPreview();
 refreshSettings();

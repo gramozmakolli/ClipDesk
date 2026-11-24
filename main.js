@@ -270,7 +270,14 @@ ipcMain.handle('transcribe', async (e, o) => {
 
   if (!asrCache[modelId]) {
     send('Loading the speech model. The first time it downloads (about 40 to 250 MB), please wait...');
-    const { pipeline, env } = await import('@huggingface/transformers');
+    let tf;
+    try {
+      // resolve the file ourselves so this also works when the code is loaded from an update folder
+      tf = await import(require('url').pathToFileURL(require.resolve('@huggingface/transformers')).href);
+    } catch {
+      tf = await import('@huggingface/transformers');
+    }
+    const { pipeline, env } = tf;
     env.cacheDir = path.join(app.getPath('userData'), 'models');
     let last = 0;
     asrCache[modelId] = await pipeline('automatic-speech-recognition', modelId, {

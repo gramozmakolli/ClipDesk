@@ -39,6 +39,16 @@ The app is not signed by Apple, so the first time: right-click ClipDesk in Appli
 1. Settings: paste your Anthropic API key (console.anthropic.com). It is billed per use and is separate from your Claude chat plan.
 2. Studio: choose your logo once. It is remembered.
 
+## Updates (no reinstalling)
+
+Install the DMG once. After that, ClipDesk checks GitHub for updates a few seconds after it opens (and every 6 hours). When one is ready, a box appears: click **Restart** and you're on the new version. Settings has a **Check for updates** button and shows your version.
+
+- Most updates (new features, fixes) are small code-only updates and need no download from you.
+- Only when a new package or a bigger change is needed, the app says so and opens the releases page. Then you download the new DMG once.
+- If an update ever breaks the app on startup, the app falls back to the version it came with by itself.
+
+**For whoever publishes (Claude does this):** push a tag like `v1.0.1`. GitHub Actions builds the Apple Silicon and Intel DMGs and the small `clipdesk-code.tar.gz` update file and attaches them to a release. Which DMG do you need? Apple menu, About This Mac: "Apple M..." means the **arm64** file, "Intel" means the **x64** file.
+
 ## Subtitles notes
 
 - The first Transcribe downloads a speech model (about 40 MB for Fast, 150 MB for Balanced, 250 MB for Best) and then works offline. It needs an internet connection that one time.

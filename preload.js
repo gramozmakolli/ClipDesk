@@ -20,6 +20,14 @@ contextBridge.exposeInMainWorld('clipdesk', {
     ipcRenderer.removeAllListeners('transcribe:status');
     ipcRenderer.on('transcribe:status', (_e, v) => cb(v));
   },
+  getUpdate: () => ipcRenderer.invoke('update:get'),
+  checkUpdate: () => ipcRenderer.invoke('update:check'),
+  restartForUpdate: () => ipcRenderer.invoke('update:restart'),
+  openReleases: () => ipcRenderer.invoke('update:releases'),
+  onUpdate: cb => {
+    ipcRenderer.removeAllListeners('update:status');
+    ipcRenderer.on('update:status', (_e, v) => cb(v));
+  },
   pathForFile: file => webUtils.getPathForFile(file),
   fileUrl: p => 'file://' + String(p).split('/').map(encodeURIComponent).join('/'),
 });
