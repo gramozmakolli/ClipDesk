@@ -4,6 +4,7 @@ A Mac app for making short videos from footage you are allowed to use.
 
 - **Watch**: Twitch and YouTube in a built-in browser. Use their own Clip buttons.
 - **Studio**: trim a video, convert it to vertical (9:16) or horizontal (16:9), add your logo.
+- **Clips**: turn a long video of yours into short clips. Finds loud/action moments for you (or splits it into equal parts), then exports Shorts/Reels/TikTok clips with your logo, title, part numbers, subtitles from an .srt file, and music.
 - **Subtitles**: transcribes the speech in your video on your Mac (no API key), lets you fix any mistakes, and burns styled captions into the export. Pick the video and Start/End in Studio, press Transcribe in Subtitles, then tick "Burn in subtitles" in Studio and export. Works for vertical and horizontal.
 - **Thumbnails**: grab a frame from your video, add text and your logo, save a PNG.
 - **Post text**: Claude writes titles, thumbnail text, a caption and hashtags (English).

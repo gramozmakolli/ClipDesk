@@ -12,6 +12,7 @@
 <nav id="nav">
   <div class="brand">ClipDesk</div>
   <button class="nb on" data-tab="watch"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg><span data-i18n="nav.watch">Watch</span></button>
+  <button class="nb" data-tab="clips"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4"/></svg><span data-i18n="nav.clips">Clips</span></button>
   <button class="nb" data-tab="studio"><svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg><span data-i18n="nav.studio">Studio</span></button>
   <button class="nb" data-tab="subs"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M6 11h4M12.5 11H18M6 15h6M14.5 15H18"/></svg><span data-i18n="nav.subs">Subtitles</span></button>
   <button class="nb" data-tab="thumbs"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg><span data-i18n="nav.thumbs">Thumbnails</span></button>
@@ -51,6 +52,118 @@
   </section>
 
   <!-- STUDIO -->
+  <!-- CLIPS -->
+  <section id="tab-clips" class="tab" hidden>
+    <div class="cl-head"><h2 data-i18n="cl.title">Clips</h2><span class="muted" data-i18n="cl.sub">Long video &rarr; short clips for Shorts, Reels and TikTok</span><span class="spacer"></span><button class="ghost" id="clOpen" data-i18n="cl.openDir">Open folder</button></div>
+    <div class="cl-cols">
+      <div class="cl-main">
+        <div id="clDrop" class="drop">
+          <p data-i18n="s.drop">Drop a video here</p>
+          <button id="clPick" data-i18n="s.pick">Choose video</button>
+        </div>
+        <div id="clHow" class="cl-how"><h3 data-i18n="cl.how">How it works</h3><ol>
+          <li data-i18n="cl.h1"></li><li data-i18n="cl.h2"></li><li data-i18n="cl.h3"></li><li data-i18n="cl.h4"></li></ol>
+          <p class="small muted" data-i18n="cl.legal"></p></div>
+        <div id="clWork" hidden>
+          <div class="line"><span id="clName" class="small muted"></span> <button class="ghost" id="clChange" data-i18n="cl.change">Change video</button></div>
+          <video id="clVideo" controls preload="metadata"></video>
+          <div class="seg cl-modes"><button id="clModeBest" class="on" data-i18n="cl.best">Best moments</button><button id="clModeSplit" data-i18n="cl.split">Split into parts</button></div>
+
+          <div id="clBest">
+            <div class="row"><label>Start</label><input id="clS" type="text" class="short" placeholder="0:00"> <button class="ghost" id="clSNow" data-i18n="s.useTime">Use current time</button>
+              <label>End</label><input id="clE" type="text" class="short" placeholder="0:00"> <button class="ghost" id="clENow" data-i18n="s.useTime">Use current time</button>
+              <button id="clAdd" data-i18n="cl.add">+ Add as clip</button></div>
+            <div class="side cl-find">
+              <div class="row"><b data-i18n="cl.find">Find the best moments</b><span class="spacer"></span>
+                <label class="muted" data-i18n="cl.many">How many</label><select id="clCount"><option>5</option><option>10</option><option selected>15</option><option>20</option><option>30</option></select>
+                <label class="muted" data-i18n="cl.len">Length</label><select id="clLen"><option value="15">15 s</option><option value="30">30 s</option><option value="45">45 s</option><option value="60" selected>60 s</option><option value="90">90 s</option></select></div>
+              <div class="row"><label class="muted" data-i18n="cl.look">Look for</label>
+                <select id="clLook"><option value="both" data-i18n="cl.lookBoth">Reactions and action</option><option value="loud" data-i18n="cl.lookLoud">Loud reactions</option><option value="action" data-i18n="cl.lookAction">Fast action</option></select>
+                <button id="clFind" data-i18n="cl.findBtn">Find moments</button><span id="clFindSt" class="small muted"></span></div>
+            </div>
+            <div id="clList" class="cl-list"></div>
+          </div>
+
+          <div id="clSplit" class="side cl-find" hidden>
+            <div class="row"><label class="muted" data-i18n="cl.each">Each part</label>
+              <span id="clPresets"></span> <label class="muted" data-i18n="cl.exact">or exactly</label><input id="clEach" type="text" class="short" value="1:01"></div>
+            <div class="row"><label class="muted" data-i18n="cl.which">Which part</label>
+              <label class="line"><input type="checkbox" id="clWhole"> <span data-i18n="cl.whole">Whole video</span></label>
+              <label class="muted" data-i18n="cl.from">or from</label><input id="clFrom" type="text" class="short" value="0:00"> <label class="muted" data-i18n="cl.to">to</label><input id="clTo" type="text" class="short" value="1:00:00"></div>
+            <div class="row"><label class="muted" data-i18n="cl.lastPart">Last part</label>
+              <label class="line"><input type="radio" name="clLast" value="short"> <span data-i18n="cl.lastShort">Keep it shorter</span></label>
+              <label class="line"><input type="radio" name="clLast" value="join"> <span data-i18n="cl.lastJoin">Add it to the part before</span></label>
+              <label class="line"><input type="radio" name="clLast" value="drop" checked> <span data-i18n="cl.lastDrop">Leave it out</span></label></div>
+            <div class="row"><label class="muted" data-i18n="cl.overlap">Overlap</label><input id="clOv" type="range" min="0" max="15" value="0"> <b id="clOvV">0 s</b> <span class="small muted" data-i18n="cl.overlapHint">each part starts with the last seconds of the one before</span></div>
+            <canvas id="clStrip" height="34"></canvas>
+            <div id="clSum" class="cl-sum"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side cl-side">
+        <canvas id="clPrev" width="270" height="480"></canvas>
+        <p class="small muted center" data-i18n="cl.dragHint">Drag the title in the preview to move it</p>
+        <h3 data-i18n="s.format">Format</h3>
+        <label class="line"><input type="radio" name="clFmt" value="vertical" checked> <span>Vertical 9:16</span> <span class="small muted">Shorts, Reels, TikTok</span></label>
+        <label class="line"><input type="radio" name="clFmt" value="square"> <span>Square 1:1</span> <span class="small muted">Instagram feed</span></label>
+        <label class="line"><input type="radio" name="clFmt" value="horizontal"> <span>Horizontal 16:9</span> <span class="small muted">YouTube</span></label>
+        <div class="row"><label data-i18n="s.fit">Fit</label><select id="clFit"><option value="color" data-i18n="cl.fitColor">Background colour</option><option value="blur" data-i18n="s.fitBlur">Blurred background</option><option value="crop" data-i18n="s.fitCrop">Crop to fill</option></select></div>
+        <div class="row" id="clSwRow"><label data-i18n="cl.colour">Colour</label><span id="clSw" class="sw"></span><input type="color" id="clBg" value="#000000"></div>
+
+        <h3 data-i18n="s.logo">Logo</h3>
+        <label class="line"><input type="checkbox" id="clLogoOn"> <span data-i18n="s.addLogo">Add my logo</span></label>
+        <div class="row"><button class="ghost" id="clLogoPick" data-i18n="s.pickLogo">Choose logo (PNG)</button> <span id="clLogoName" class="small muted"></span></div>
+        <div class="row"><label data-i18n="s.corner">Corner</label><select id="clLogoPos"><option value="tl" data-i18n="s.tl">Top left</option><option value="tr" data-i18n="s.tr">Top right</option><option value="bl" data-i18n="s.bl">Bottom left</option><option value="br" selected data-i18n="s.br">Bottom right</option></select></div>
+        <div class="row"><label data-i18n="c.size">Size</label><input type="range" id="clLogoSz" min="5" max="40" value="14"><b id="clLogoSzV">14%</b></div>
+        <div class="row"><label data-i18n="cl.opacity">Opacity</label><input type="range" id="clLogoOp" min="10" max="100" value="100"><b id="clLogoOpV">100%</b></div>
+
+        <h3 data-i18n="cl.text">Text</h3>
+        <label class="line"><input type="checkbox" id="clTitleOn" checked> <span data-i18n="cl.title1">Title</span></label>
+        <input type="text" id="clTitle" placeholder="Speed GTA6 Day #2" value="">
+        <label class="line"><input type="checkbox" id="clNumOn" checked> <span data-i18n="cl.number">Number the parts</span></label>
+        <div class="row"><select id="clNumStart"></select> <input type="text" id="clLabel" class="short" value="Part"></div>
+        <label class="line"><input type="checkbox" id="clNextOn" checked> <span data-i18n="cl.next">Show the next part number at the end (e.g. "Part 4 →")</span></label>
+        <div class="row"><label data-i18n="cl.font">Font</label><select id="clFont"><option>Arial Black</option><option>Impact</option><option>Helvetica Neue</option><option>Georgia</option><option>Courier New</option></select></div>
+        <div class="row"><label data-i18n="c.size">Size</label><input type="range" id="clTSz" min="40" max="200" value="100"><b id="clTSzV">100%</b></div>
+        <div class="row"><label data-i18n="cl.colours">Colours</label><input type="color" id="clTCol" value="#ffffff"><span class="small muted" data-i18n="cl.tText">Text</span><input type="color" id="clTOut" value="#000000"><span class="small muted" data-i18n="cl.tOutline">Outline</span></div>
+        <label class="line"><input type="checkbox" id="clOutline" checked> <span data-i18n="cl.outline">Outline around the letters</span></label>
+        <label class="line"><input type="checkbox" id="clBox"> <span data-i18n="cl.box">Box behind the text</span></label>
+        <div class="row"><label data-i18n="cl.sideways">Sideways</label><input type="range" id="clTX" min="5" max="95" value="50"><b id="clTXV">50%</b></div>
+        <div class="row"><label data-i18n="cl.height">Height</label><input type="range" id="clTY" min="5" max="95" value="19"><b id="clTYV">19%</b></div>
+        <div class="row"><button class="ghost" data-ty="12" data-i18n="cl.top">Top</button><button class="ghost" data-ty="50" data-i18n="cl.mid">Middle</button><button class="ghost" data-ty="86" data-i18n="cl.bottom">Bottom</button></div>
+
+        <h3 data-i18n="nav.subs">Subtitles</h3>
+        <label class="line"><input type="checkbox" id="clSubOn"> <span data-i18n="cl.srt">Burn in subtitles from an .srt file</span></label>
+        <div class="row"><button class="ghost" id="clSrtPick" data-i18n="cl.srtPick">Choose .srt</button> <span id="clSrtName" class="small muted"></span></div>
+        <div class="row"><label data-i18n="c.size">Size</label><select id="clSubSz"><option value="0.045" data-i18n="cl.small">Small</option><option value="0.058" data-i18n="cl.medium">Medium</option><option value="0.072" selected data-i18n="cl.big">Big</option></select></div>
+        <div class="row"><label data-i18n="cl.height">Height</label><input type="range" id="clSubY" min="10" max="95" value="72"><b id="clSubYV">72%</b></div>
+        <div class="row"><label data-i18n="c.color">Colour</label><input type="color" id="clSubCol" value="#ffffff"><span class="small muted" data-i18n="cl.letters">Letters</span></div>
+
+        <h3 data-i18n="cl.music">Music</h3>
+        <label class="line"><input type="checkbox" id="clMusOn"> <span data-i18n="cl.addMusic">Add music</span></label>
+        <div class="row"><button class="ghost" id="clMusPick" data-i18n="cl.pickMusic">Choose music</button> <span id="clMusName" class="small muted"></span></div>
+        <div class="row"><label data-i18n="cl.music">Music</label><input type="range" id="clMusVol" min="0" max="100" value="20"><b id="clMusVolV">20%</b></div>
+        <div class="row"><label data-i18n="cl.vidSound">Video sound</label><input type="range" id="clVidVol" min="0" max="150" value="100"><b id="clVidVolV">100%</b></div>
+        <label class="line"><input type="checkbox" id="clDuck" checked> <span data-i18n="cl.duck">Lower the music when someone talks</span></label>
+        <div class="row"><label data-i18n="cl.songFrom">Song from</label><input type="text" id="clSongFrom" class="short" value="0:00"><span class="small muted" data-i18n="cl.repeats">repeats if the clip is longer</span></div>
+
+        <h3 data-i18n="cl.finish">Finish</h3>
+        <label class="line"><input type="checkbox" id="clFade"> <span data-i18n="cl.fade">Fade in and out</span></label>
+        <label class="line"><input type="checkbox" id="clNorm" checked> <span data-i18n="cl.norm">Louder, even sound for phones</span></label>
+        <div class="row"><label data-i18n="cl.quality">Quality</label><select id="clQ"><option value="1080">1080p (best)</option><option value="720">720p (smaller files)</option></select></div>
+        <div class="row"><label data-i18n="cl.fps">Frame rate</label><select id="clFps"><option value="0" data-i18n="cl.fpsSame">Same as the video</option><option value="30">30</option><option value="60">60</option></select></div>
+
+        <h3 data-i18n="cl.output">Output</h3>
+        <div id="clOut" class="small muted wrap"></div>
+        <div class="small muted" id="clNames"></div>
+        <div class="row"><button class="ghost" id="clOutPick" data-i18n="cl.chooseFolder">Choose folder</button><button class="ghost" id="clOutDef" data-i18n="cl.default">Default</button></div>
+        <button class="big" id="clExport" disabled data-i18n="cl.chooseFirst">Choose a video first</button>
+        <div id="clProg" class="small muted"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="tab-studio" class="tab" hidden>
     <div class="cols">
       <div class="col">
@@ -206,5 +319,6 @@
 <div id="upd" hidden><span id="updText"></span> <button id="updNow">Restart</button> <button id="updX" class="ghost" data-i18n="upd.later">Later</button></div>
 <div id="toast"></div>
 <script src="app.js"></script>
+<script src="clips.js"></script>
 </body>
 </html>

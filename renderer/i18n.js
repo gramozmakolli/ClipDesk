@@ -179,6 +179,9 @@
     [/^Listening to the video/, () => 'Duke dëgjuar videon. Videot e gjata zgjasin...'],
   ];
 
+  // Other scripts (clips.js) add their own strings here.
+  function addI18n(en, sq) { Object.assign(D.en, en); Object.assign(D.sq, sq); }
+
   function tr(key, vars) {
     let s = (D[lang] && D[lang][key]) || D.en[key] || key;
     if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join(String(vars[k]));
@@ -218,7 +221,7 @@
   }
 
   Object.assign(window, {
-    tr, errMsg, statusMsg, applyI18n, setLang, setTheme,
+    tr, addI18n, errMsg, statusMsg, applyI18n, setLang, setTheme,
     getLang: () => lang, getTheme: () => theme,
   });
 })();

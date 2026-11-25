@@ -74,6 +74,8 @@ ipcMain.handle('dialog:open', async (_e, kind) => {
   if (kind === 'video') opts.filters = [{ name: 'Video', extensions: VIDEO_EXT }];
   else if (kind === 'image') opts.filters = [{ name: 'Image', extensions: IMAGE_EXT }];
   else if (kind === 'media') opts.filters = [{ name: 'Video or image', extensions: [...VIDEO_EXT, ...IMAGE_EXT] }];
+  else if (kind === 'srt') opts.filters = [{ name: 'Subtitles', extensions: ['srt'] }];
+  else if (kind === 'audio') opts.filters = [{ name: 'Audio', extensions: ['mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac'] }];
   else if (kind === 'folder') opts.properties = ['openDirectory', 'createDirectory'];
   const r = await dialog.showOpenDialog(win, opts);
   return r.canceled ? null : r.filePaths[0];
@@ -87,6 +89,12 @@ ipcMain.handle('fs:readImage', (_e, p) => {
   if (stat.size > 25 * 1024 * 1024) throw new Error('Image is too large (25 MB max).');
   const mime = ext === 'jpg' ? 'image/jpeg' : 'image/' + ext;
   return `data:${mime};base64,${fs.readFileSync(p).toString('base64')}`;
+});
+
+ipcMain.handle('fs:readText', (_e, p) => {
+  if (typeof p !== 'string' || !/\.srt$/i.test(p)) throw new Error('Not a subtitle file.');
+  if (fs.statSync(p).size > 5 * 1024 * 1024) throw new Error('Subtitle file is too large.');
+  return fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '');
 });
 
 ipcMain.handle('fs:saveImage', async (_e, dataUrl, suggestedName) => {
@@ -361,6 +369,255 @@ ipcMain.handle('claude:ask', async (_e, { system, messages, webSearch, maxTokens
     clearTimeout(timer);
   }
 });
+
+// ---------- Clips: long video -> short clips ----------
+const CLIP_DIMS = {
+  vertical: { 1080: [1080, 1920], 720: [720, 1280] },
+  square: { 1080: [1080, 1080], 720: [720, 720] },
+  horizontal: { 1080: [1920, 1080], 720: [1280, 720] },
+};
+const hexColor = (v, d) => (/^#[0-9a-fA-F]{6}$/.test(v || '') ? '0x' + v.slice(1) : d);
+
+// Pure: scores each second, then picks the best non-overlapping windows.
+// loud[] and motion[] hold one number per second (already compared with their local average).
+function pickMoments(loud, motion, count, length, look) {
+  const n = Math.max(loud.length, motion.length);
+  const len = Math.max(5, Math.min(Math.round(length), n));
+  const wl = look === 'action' ? 0 : 1, wm = look === 'loud' ? 0 : 1;
+  const s = new Float64Array(n);
+  for (let i = 0; i < n; i++) s[i] = wl * (loud[i] || 0) + wm * (motion[i] || 0);
+  const pre = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + s[i];
+  const cand = [];
+  for (let a = 0; a + len <= n; a += Math.max(1, Math.floor(len / 6))) {
+    let peak = 0;
+    for (let i = a; i < a + len; i++) if (s[i] > peak) peak = s[i];
+    cand.push({ start: a, end: a + len, score: (pre[a + len] - pre[a]) / len + 0.5 * peak });
+  }
+  cand.sort((x, y) => y.score - x.score);
+  const out = [];
+  for (const c of cand) {
+    if (out.length >= count) break;
+    if (out.some(o => c.start < o.end && c.end > o.start)) continue;
+    out.push(c);
+  }
+  out.sort((x, y) => x.start - y.start);
+  return out;
+}
+
+function movingBaseline(arr, win) {
+  // value minus the median-ish local level (mean of the lower half would be costly; use a running mean over 'win' seconds)
+  const n = arr.length, pre = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + arr[i];
+  const out = new Float64Array(n);
+  let sd = 0;
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - win), b = Math.min(n, i + win + 1);
+    out[i] = arr[i] - (pre[b] - pre[a]) / (b - a);
+  }
+  for (let i = 0; i < n; i++) sd += out[i] * out[i];
+  sd = Math.sqrt(sd / Math.max(1, n)) || 1;
+  for (let i = 0; i < n; i++) out[i] = Math.max(0, out[i] / sd);
+  return out;
+}
+
+ipcMain.handle('clips:analyze', (e, o) => new Promise((resolve, reject) => {
+  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) return reject(new Error('ffmpeg was not found. Run npm install again.'));
+  if (!o || typeof o.input !== 'string' || !fs.existsSync(o.input)) return reject(new Error('Choose a video first.'));
+  const duration = Math.max(1, num(o.duration, 0));
+  const count = Math.min(40, Math.max(1, Math.round(num(o.count, 15))));
+  const length = Math.min(180, Math.max(10, num(o.length, 60)));
+  const look = ['loud', 'action'].includes(o.look) ? o.look : 'both';
+  const loud = [], motion = [];
+  let doneA = false, doneV = false, failed = false;
+  const prog = {};
+  const send = () => e.sender.send('clips:progress', Math.min(1, ((prog.a || 0) + (prog.v || 0)) / 2));
+  const finish = () => {
+    if (failed || !(doneA && doneV)) return;
+    const L = movingBaseline(loud, 90), M = movingBaseline(motion, 90);
+    if (!L.length && !M.length) return reject(new Error('Could not read this video.'));
+    resolve(pickMoments(L, M, count, length, look));
+  };
+  const run = (args, onData, key, onEnd) => {
+    const p = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let err = '';
+    p.stderr.on('data', d => { err = (err + d.toString()).slice(-500); });
+    p.stdout.on('data', onData);
+    p.on('error', x => { if (!failed) { failed = true; reject(x); } });
+    p.on('close', code => {
+      if (failed) return;
+      if (code !== 0 && key === 'v') { failed = true; return reject(new Error('Could not read the video. ' + err.trim())); }
+      prog[key] = 1; send(); onEnd(); finish();
+    });
+    return p;
+  };
+  // audio: 8 kHz mono 16-bit; loudness = RMS per second
+  let aBuf = Buffer.alloc(0), aSec = 0;
+  const A = run(['-hide_banner', '-loglevel', 'error', '-i', o.input, '-vn', '-ac', '1', '-ar', '8000', '-f', 's16le', 'pipe:1'], d => {
+    aBuf = Buffer.concat([aBuf, d]);
+    const step = 16000; // bytes per second
+    while (aBuf.length >= step) {
+      let sum = 0;
+      for (let i = 0; i < step; i += 2) { const v = aBuf.readInt16LE(i) / 32768; sum += v * v; }
+      loud.push(20 * Math.log10(Math.sqrt(sum / (step / 2)) + 1e-5));
+      aBuf = aBuf.subarray(step); aSec++;
+    }
+    prog.a = aSec / duration; send();
+  }, 'a', () => { doneA = true; });
+  // video: 2 small grey frames per second; motion = how much the picture changes
+  const FW = 48, FH = 27, FS = FW * FH;
+  let vBuf = Buffer.alloc(0), prev = null, acc = 0, accN = 0, frames = 0;
+  run(['-hide_banner', '-loglevel', 'error', '-i', o.input, '-an', '-vf', `fps=2,scale=${FW}:${FH},format=gray`, '-f', 'rawvideo', 'pipe:1'], d => {
+    vBuf = Buffer.concat([vBuf, d]);
+    while (vBuf.length >= FS) {
+      const f = vBuf.subarray(0, FS);
+      if (prev) { let s = 0; for (let i = 0; i < FS; i++) s += Math.abs(f[i] - prev[i]); acc += s / FS; accN++; }
+      prev = Buffer.from(f); vBuf = vBuf.subarray(FS); frames++;
+      if (frames % 2 === 0) { motion.push(accN ? acc / accN : 0); acc = 0; accN = 0; }
+    }
+    prog.v = (frames / 2) / duration; send();
+  }, 'v', () => { doneV = true; });
+  if (!A) reject(new Error('Could not start ffmpeg.'));
+}));
+
+function hasAudioTrack(input) {
+  return new Promise(resolve => {
+    const p = spawn(ffmpegPath, ['-hide_banner', '-i', input], { stdio: ['ignore', 'ignore', 'pipe'] });
+    let t = '';
+    p.stderr.on('data', d => { t += d.toString(); });
+    p.on('error', () => resolve(true));
+    p.on('close', () => resolve(/Stream #\d+:\d+.*Audio:/.test(t)));
+  });
+}
+
+// Pure: builds the ffmpeg filter graph for one clip. Inputs: 0 video, then logo?, overlay PNGs, music?
+function buildClipFilter(o) {
+  const { W, H, fit, bg, hasLogo, logo, overlays, hasMusic, hasAudio, music, videoVol, fade, loudnorm, fps, len } = o;
+  const f = [];
+  if (fit === 'crop') f.push(`[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}[base0]`);
+  else if (fit === 'color') f.push(`[0:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=${bg}[base0]`);
+  else {
+    f.push('[0:v]split=2[a][b]');
+    f.push(`[a]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=25:5[bgv]`);
+    f.push(`[b]scale=${W}:${H}:force_original_aspect_ratio=decrease[fg]`);
+    f.push('[bgv][fg]overlay=(W-w)/2:(H-h)/2[base0]');
+  }
+  f.push(fps ? `[base0]fps=${fps}[c0]` : '[base0]null[c0]');
+  let cur = 'c0', idx = 1, n = 1;
+  if (hasLogo) {
+    const lw = Math.max(40, Math.round((W * logo.scale) / 100)), m = Math.round(W * 0.037);
+    const xy = { tl: `${m}:${m}`, tr: `W-w-${m}:${m}`, bl: `${m}:H-h-${m}`, br: `W-w-${m}:H-h-${m}` }[logo.pos] || `W-w-${m}:H-h-${m}`;
+    f.push(`[${idx}:v]scale=${lw}:-1,format=rgba,colorchannelmixer=aa=${(logo.opacity / 100).toFixed(2)}[lg]`);
+    f.push(`[${cur}][lg]overlay=${xy}[c${n}]`);
+    cur = 'c' + n++; idx++;
+  }
+  for (const ov of overlays) {
+    f.push(`[${cur}][${idx}:v]overlay=0:${ov.y}:enable='between(t,${ov.start.toFixed(3)},${ov.end.toFixed(3)})'[c${n}]`);
+    cur = 'c' + n++; idx++;
+  }
+  const fd = Math.min(0.5, len / 4);
+  f.push(fade ? `[${cur}]fade=t=in:st=0:d=${fd.toFixed(2)},fade=t=out:st=${Math.max(0, len - fd).toFixed(2)}:d=${fd.toFixed(2)},format=yuv420p[v]` : `[${cur}]format=yuv420p[v]`);
+  const musicIdx = hasMusic ? idx : -1;
+  let aOut = null;
+  if (hasAudio || hasMusic) {
+    const post = [];
+    if (loudnorm) post.push('loudnorm=I=-14:TP=-1.5:LRA=11', 'aresample=48000');
+    if (fade) post.push(`afade=t=in:st=0:d=${fd.toFixed(2)}`, `afade=t=out:st=${Math.max(0, len - fd).toFixed(2)}:d=${fd.toFixed(2)}`);
+    const tail = post.length ? ',' + post.join(',') : '';
+    if (hasAudio && hasMusic) {
+      f.push(`[0:a]volume=${videoVol.toFixed(2)}${music.duck ? ',asplit=2[va1][va2]' : '[va1]'}`);
+      f.push(`[${musicIdx}:a]volume=${music.vol.toFixed(2)}[ma]`);
+      if (music.duck) {
+        f.push('[ma][va2]sidechaincompress=threshold=0.04:ratio=8:attack=20:release=500[md]');
+        f.push(`[va1][md]amix=inputs=2:duration=first:dropout_transition=0:normalize=0${tail}[aout]`);
+      } else {
+        f.push(`[va1][ma]amix=inputs=2:duration=first:dropout_transition=0:normalize=0${tail}[aout]`);
+      }
+    } else if (hasAudio) {
+      f.push(`[0:a]volume=${videoVol.toFixed(2)}${tail}[aout]`);
+    } else {
+      f.push(`[${musicIdx}:a]volume=${music.vol.toFixed(2)}${tail}[aout]`);
+    }
+    aOut = '[aout]';
+  }
+  return { graph: f.join(';'), aOut };
+}
+
+ipcMain.handle('clips:render', async (e, o) => {
+  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) throw new Error('ffmpeg was not found. Run npm install again.');
+  if (!o || typeof o.input !== 'string' || !fs.existsSync(o.input)) throw new Error('Choose a video first.');
+  const fmt = CLIP_DIMS[o.format] ? o.format : 'vertical';
+  const q = o.quality === 720 ? 720 : 1080;
+  const [W, H] = CLIP_DIMS[fmt][q];
+  const start = Math.max(0, num(o.start, 0));
+  const len = num(o.end, 0) - start;
+  if (!(len > 0.2)) throw new Error('The clip is too short.');
+  const outDir = typeof o.outputDir === 'string' && o.outputDir ? o.outputDir : path.join(app.getPath('movies'), 'ClipDesk', 'Clips');
+  fs.mkdirSync(outDir, { recursive: true });
+  const safe = String(o.name || 'Clip').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').trim().slice(0, 80) || 'Clip';
+  const out = uniquePath(outDir, safe, 'mp4');
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'clipdesk-clip-'));
+  const cleanup = () => fs.rm(tmp, { recursive: true, force: true }, () => {});
+  try {
+    const list = Array.isArray(o.overlays) ? o.overlays : [];
+    if (list.length > 200) throw new Error('Too many captions in one clip (200 max).');
+    const overlays = list.map((c, i) => {
+      const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec((c && c.png) || '');
+      const s = num(c && c.start, NaN), en = num(c && c.end, NaN), y = Math.round(num(c && c.y, 0));
+      if (!m || !Number.isFinite(s) || !Number.isFinite(en) || en <= s) throw new Error('Bad overlay data.');
+      const file = path.join(tmp, `ov${String(i).padStart(4, '0')}.png`);
+      fs.writeFileSync(file, Buffer.from(m[1], 'base64'));
+      return { file, start: s, end: en, y };
+    });
+    const hasLogo = !!(o.logo && typeof o.logo.path === 'string' && fs.existsSync(o.logo.path));
+    const hasMusic = !!(o.music && typeof o.music.path === 'string' && fs.existsSync(o.music.path));
+    const hasAudio = await hasAudioTrack(o.input);
+    const logo = { pos: o.logo && o.logo.pos, scale: Math.min(60, Math.max(3, num(o.logo && o.logo.scale, 14))), opacity: Math.min(100, Math.max(5, num(o.logo && o.logo.opacity, 100))), path: o.logo && o.logo.path };
+    const music = { vol: Math.min(2, Math.max(0, num(o.music && o.music.vol, 20) / 100)), duck: !!(o.music && o.music.duck), from: Math.max(0, num(o.music && o.music.from, 0)), path: o.music && o.music.path };
+    const fps = [24, 30, 60].includes(Number(o.fps)) ? Number(o.fps) : 0;
+    const { graph, aOut } = buildClipFilter({
+      W, H, fit: ['crop', 'color'].includes(o.fit) ? o.fit : 'blur', bg: hexColor(o.bg, '0x000000'),
+      hasLogo, logo, overlays, hasMusic, hasAudio, music,
+      videoVol: Math.min(2, Math.max(0, num(o.videoVol, 100) / 100)), fade: !!o.fade, loudnorm: !!o.loudnorm, fps, len,
+    });
+    const args = ['-y', '-hide_banner', '-nostats', '-progress', 'pipe:1'];
+    if (start > 0) args.push('-ss', String(start));
+    args.push('-i', o.input);
+    if (hasLogo) args.push('-i', logo.path);
+    overlays.forEach(c => args.push('-i', c.file));
+    if (hasMusic) args.push('-stream_loop', '-1', '-ss', String(music.from), '-i', music.path);
+    args.push('-filter_complex', graph, '-map', '[v]');
+    if (aOut) args.push('-map', aOut);
+    args.push('-t', String(len), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', q === 720 ? '22' : '20', '-pix_fmt', 'yuv420p');
+    if (aOut) args.push('-c:a', 'aac', '-b:a', '192k');
+    args.push('-movflags', '+faststart', out);
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+      let errTail = '';
+      proc.stderr.on('data', d => { errTail = (errTail + d.toString()).slice(-1500); });
+      proc.stdout.on('data', d => {
+        const m = /out_time_(?:us|ms)=(\d+)/.exec(d.toString());
+        if (m) e.sender.send('clips:renderProgress', Math.min(1, Number(m[1]) / 1e6 / len));
+      });
+      proc.on('error', reject);
+      proc.on('close', code => (code === 0 ? resolve() : reject(new Error('ffmpeg failed: ' + errTail.trim().split('\n').slice(-3).join(' ')))));
+    });
+    return { output: out };
+  } finally {
+    cleanup();
+  }
+});
+
+ipcMain.handle('clips:dir', () => path.join(app.getPath('movies'), 'ClipDesk', 'Clips'));
+ipcMain.handle('shell:openDir', async (_e, p) => {
+  if (typeof p !== 'string') return;
+  fs.mkdirSync(p, { recursive: true });
+  await shell.openPath(p);
+});
+
+if (process.env.CLIPDESK_TEST) module.exports = { pickMoments, movingBaseline, buildClipFilter, CLIP_DIMS };
 
 // ---------- window ----------
 function createWindow() {

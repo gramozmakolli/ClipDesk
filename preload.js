@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('clipdesk', {
   setKey: key => ipcRenderer.invoke('key:set', key),
   openFile: kind => ipcRenderer.invoke('dialog:open', kind),
   readImage: p => ipcRenderer.invoke('fs:readImage', p),
+  readText: p => ipcRenderer.invoke('fs:readText', p),
   saveImage: (dataUrl, name) => ipcRenderer.invoke('fs:saveImage', dataUrl, name),
   showInFolder: p => ipcRenderer.invoke('shell:show', p),
   convert: opts => ipcRenderer.invoke('convert', opts),
@@ -27,6 +28,18 @@ contextBridge.exposeInMainWorld('clipdesk', {
   onUpdate: cb => {
     ipcRenderer.removeAllListeners('update:status');
     ipcRenderer.on('update:status', (_e, v) => cb(v));
+  },
+  clipsAnalyze: opts => ipcRenderer.invoke('clips:analyze', opts),
+  clipsRender: opts => ipcRenderer.invoke('clips:render', opts),
+  clipsDir: () => ipcRenderer.invoke('clips:dir'),
+  openDir: p => ipcRenderer.invoke('shell:openDir', p),
+  onClipsProgress: cb => {
+    ipcRenderer.removeAllListeners('clips:progress');
+    ipcRenderer.on('clips:progress', (_e, v) => cb(v));
+  },
+  onClipsRender: cb => {
+    ipcRenderer.removeAllListeners('clips:renderProgress');
+    ipcRenderer.on('clips:renderProgress', (_e, v) => cb(v));
   },
   pathForFile: file => webUtils.getPathForFile(file),
   fileUrl: p => 'file://' + String(p).split('/').map(encodeURIComponent).join('/'),
